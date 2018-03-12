@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Mar  9 21:43:18 2018
 
-@author: harrypotter
-"""
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
