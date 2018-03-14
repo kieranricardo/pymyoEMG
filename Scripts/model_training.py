@@ -60,12 +60,8 @@ def classifier(action, no_action, dataset):
 if __name__ == '__main__':
     name = input('Please enter user name: ')
     emg_data = pd.read_hdf('../Data/'+name+'_emg_data.h5', 'data')
-    emg_data['emg'] = [np.array(t[3:]) for t in emg_data.itertuples()]  #creates one (8,) array for 
-                                                                        #each measurment note this
-                                                                        #will be automatically included
-                                                                        #in future versions of the
-                                                                        #data logger  
-    processed_emg = []
+    emg_data['emg'] = [np.array(t[3:]) for t in emg_data.itertuples()]  
+    
     processed_labels = []
     timestamps = []
     t0 = time.time()

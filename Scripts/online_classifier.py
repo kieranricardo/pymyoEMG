@@ -11,6 +11,8 @@ import sys
 import numpy as np
 from sklearn.externals import joblib
 from sklearn.neural_network import MLPClassifier
+import time
+from decimal import Decimal
 
 class realtimeClassifier(myo.DeviceListener):
 
@@ -20,6 +22,9 @@ class realtimeClassifier(myo.DeviceListener):
         self.model_flex = joblib.load('../Data/'+name+'_model_binary_1.sav')
         self.model_ext = joblib.load('../Data/'+name+'_model_binary_2.sav')
         
+        self.mav = None
+        self.var = None
+        self.mean = None
         self.full = False
 
     def on_connect(self, device, timestamp, firmware_version):
@@ -36,21 +41,26 @@ class realtimeClassifier(myo.DeviceListener):
     def initialize_features(self):
         self.full=True
         self.mean = np.mean(self.emg_data_queue, axis=0)
-        self.mav = np.mean(abs(self.emg_data_queue), axis=0)
+        self.mav = np.mean(np.abs(self.emg_data_queue), axis=0)
         self.var = np.var(self.emg_data_queue, axis=0)
     
     def update_features(self, x_new, x_old):
-        self.mav= self.mav+((abs(x_new)-abs(x_old))/40)
+        self.mav= self.mav+((np.abs(x_new)-np.abs(x_old))/40)
         mean_new = self.mean+((x_new-x_old)/40)
         self.var = self.var+((x_new-self.mean)**2-(x_old-self.mean)**2)/40
         self.var = self.var-((mean_new-self.mean)**2) 
         self.mean = mean_new
             
     def classify(self):
-        return self.model_flex.predict(np.concatenate(self.mav, self.var))[0]
+        if not self.var is None:
+            features = np.concatenate((self.mav, self.var)).reshape(1, -1)
+            probs = self.model_ext.predict(features)[0]
+            return probs
+        else:
+            return -1, -1
 
 
-if __name__ == '__name__':
+if __name__ == '__main__':
 
     try:
         myo.init()
@@ -61,12 +71,21 @@ if __name__ == '__name__':
     hub = myo.Hub()
     listener = realtimeClassifier(name)
     hub.run(200, listener)
+    
     try:
+        while len(listener.emg_data_queue)<40:
+            pass
+        space = ' '*50
         while True: 
-            print('Movment/position: ', listener.classify())#, end='\r')
-            sys.stdout.write("\033[F") #back to previous line
-            sys.stdout.write("\033[K") #clear line
+            sys.stdout.write('\r'+str(listener.classify())+'  ')
+            #p0, p1 = listener.classify()
+            #sys.stdout.write('\r'+str(Decimal(p0))[:4]+'   '+\
+            #                 str(Decimal(p1))[:2])
+            sys.stdout.flush()
     except KeyboardInterrupt:
         print('Exiting.')
-        
+    
+    finally:
+        hub.shutdown()
+        print('oooh')
     
