@@ -3,7 +3,7 @@
 """
 Created on Thu Mar 15 20:50:14 2018
 
-@author: harrypotter
+@author: Kieran Ricardo
 """
 from matplotlib import pyplot as plt
 import time
