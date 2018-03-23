@@ -29,11 +29,16 @@ def emg_filter_bandpass(x, order = 4, sRate = 200., lowcut = 10.):
     return filtfilt(b=b, a=a, x=x, axis=0, method = 'pad', padtype = 'odd', 
                     padlen = np.minimum(3*np.maximum(len(a),len(b)), x.shape[0]-1))
 
-def update(mean_old, mean_abs, var, x0, x1, n):
+def update(mean_old, mean_abs, var, x_old, x_new, n):
     '''
     Updates features using the values entering and leaving the window.
     '''
-     
+    mean_abs = mean_abs+((abs(x_new)-abs(x_old))/n)
+    mean_new = mean_old+((x_new-x_old)/n)
+    var = var+((x_new-mean_old)**2-(x_old-mean_old)**2)/n
+    var = var-((mean_new-mean_old)**2) 
+    return mean_new, mean_abs, var
+ 
 
 def classifier(action, no_action, dataset):
     #t1 and t2 are timestamps of a recording of an action and a rest state respectively
@@ -92,12 +97,12 @@ if __name__ == '__main__':
 
         for i in range(len(current_data)-40):
             #optimized, updates mav and var using minimal operations
-            #x0 = datapoint being removed from the window
-            #x1 = datapoint being added to the window
-            x0 = current_data.iloc[i]
-            x1 = current_data.iloc[i+40]
+            #x_out = datapoint being removed from the window
+            #x_in = datapoint being added to the window
+            x_out = current_data.iloc[i]
+            x_in = current_data.iloc[i+40]
             #updates mean, mav and var
-            mean, mean_abs, var = update(mean, mean_abs, var, x0, x1, 40) 
+            mean, mean_abs, var = update(mean, mean_abs, var, x_out, x_in, 40) 
             features.append(np.concatenate((mean_abs,var)))
         labels.extend([label]*(i+2))
         timestamps.extend([t]*(i+2))

@@ -18,7 +18,7 @@ class MyListener(myo.DeviceListener):
         self.df = None
         self.label = None
         self.name = name
-        self.columns = ['name', 'movement', 'timestamp'] + ['emg'+str(i) for i in range(1,9)]
+        self.columns = ['movement', 'timestamp'] + ['emg'+str(i) for i in range(1,9)]
 
     def on_connect(self, device, timestamp, firmware_version):
         device.set_stream_emg(myo.StreamEmg.enabled)
@@ -51,13 +51,13 @@ class MyListener(myo.DeviceListener):
         self.emg_data_queue = collections.deque(maxlen=10000)
     
     def save_data(self):
-        if self.df == None: return 0
+        if self.df is None: return 0
         try:
             df = pd.read_hdf(self.name+'_emg_data.h5', 'data')
             df = pd.concat((df, self.df))
         except FileNotFoundError:
             df = self.df
-        df.to_hdf(self.name+'_emg_data.h5', 'data')
+        df.to_hdf('../Data/'+self.name+'_emg_data.h5', 'data')
 
 #'/Users/harrypotter/Desktop/sdk/myo.framework'
 def get_valid_input(allowed_values, user_prompt):
@@ -75,7 +75,7 @@ def get_valid_input(allowed_values, user_prompt):
 if __name__ == '__main__':
 
     try:
-        myo.init('myo.framework')
+        myo.init()
         found = True
     except Exception as e:
         pass
