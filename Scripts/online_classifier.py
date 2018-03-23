@@ -14,7 +14,7 @@ from sklearn.neural_network import MLPClassifier
 import time
 from decimal import Decimal
 
-class realtimeClassifier(myo.DeviceListener):
+class RealtimeClassifier(myo.DeviceListener):
 
     def __init__(self, name):
         self.emg_data_queue = collections.deque(maxlen=40)
@@ -51,14 +51,28 @@ class realtimeClassifier(myo.DeviceListener):
         self.var = self.var-((mean_new-self.mean)**2) 
         self.mean = mean_new
             
-    def classify(self):
+    def classify_flex(self):
         if not self.var is None:
-            features = np.concatenate((self.mav, self.var)).reshape(1, -1)
-            probs = self.model_ext.predict(features)[0]
-            return probs
+            features = np.concatenate((self.mav, self.var)).reshape(1, -1)            
+            probs = self.model_flex.predict_porba(features)[0]
+            return probs[1]
         else:
-            return -1, -1
+            return -1  
+    
+    def classify_ext(self):
+        if not self.var is None:
+            features = np.concatenate((self.mav, self.var)).reshape(1, -1)            
+            probs = self.model_ext.predict_porba(features)[0]
+            return probs[1]
+        else:
+            return -1           
 
+def countdown():
+    for i in range(3,0,-1):
+        print(i)
+        time.sleep(1.5)
+    print()
+    print()
 
 if __name__ == '__main__':
 
@@ -69,23 +83,34 @@ if __name__ == '__main__':
     
     name = input('Enter user name: ') 
     hub = myo.Hub()
-    listener = realtimeClassifier(name)
-    hub.run(200, listener)
+    classifier = RealtimeClassifier(name)
+    hub.run(200, classifier)
     
     try:
-        while len(listener.emg_data_queue)<40:
+        while len(classifier.emg_data_queue)<40:
             pass
-        space = ' '*50
+        sys.stdout.write('Do nothing.')
+        state = False
         while True: 
-            sys.stdout.write('\r'+str(listener.classify())+'  ')
-            #p0, p1 = listener.classify()
-            #sys.stdout.write('\r'+str(Decimal(p0))[:4]+'   '+\
-            #                 str(Decimal(p1))[:2])
-            sys.stdout.flush()
+            if not state:
+                prob = classifier.classify_flex()
+                if prob>0.995:
+                    sys.stdout.flush()
+                    sys.stdout.write('\r'+'Flex!'+(' '*7)+'\n')                    
+                    countdown()
+                    sys.stdout.write('Do nothing.')
+                    
+            else:
+                prob = classifier.classify_ext()
+                if prob>0.995:
+                    sys.stdout.flush()
+                    sys.stdout.write('\r'+'Extend!'+(' '*5)+'\n')                   
+                    countdown()
+                    sys.stdout.write('Do nothing.')         
     except KeyboardInterrupt:
         print('Exiting.')
     
     finally:
+        print('Shutting down the hub.')
         hub.shutdown()
-        print('oooh')
     
