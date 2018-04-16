@@ -46,7 +46,7 @@ class Myo(object):
             #self.write_attr(emg_char, b'\x01\00')
         
         #self.write_attr(0x28, b'\x01\00')
-        
+        self.write_attr(0x19, b'\x09\x01\x01')
         self.write_attr(0x19, b'\x01\x03\x02\x00\x00')
         
         
@@ -97,9 +97,7 @@ class Myo(object):
         
         ## stop everything from before
         self.end_scan()
-        self.disconnect(0)
-        self.disconnect(1)
-        self.disconnect(2)
+        
        
         ## start scanning
         print('scanning...')
@@ -162,6 +160,7 @@ class Myo(object):
         return self.send_command(6, 4)
 
     def disconnect(self, h=None):
+        self.write_attr(0x19, b'\x09\x01\x00')
         if not h is None:
             return self.send_command(3, 0, pack('B', h))
         elif not self.conn is None:
