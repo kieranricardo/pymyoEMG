@@ -1,5 +1,4 @@
 import collections
-import myo
 import numpy as np
 from multiprocessing import Process
 from myo_bt import Myo
