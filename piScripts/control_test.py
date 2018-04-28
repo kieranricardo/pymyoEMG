@@ -13,35 +13,42 @@ import sys
 import threading
 import time
 
+            
+
+
 if __name__ == '__main__':
 
 
-    name = input('Enter user name: ') 
-    try: 
-        parameter = int(input('Please enter an integer value > 0 for the control parameter (default=3): '))
-    except ValueError:
-        parameter = 3
-    ft_extractor = OnlineFeatureExtractor()
+    name = 'Kieran' #input('Enter user name: ') 
+    win_size = 40
+    parameter = 3
+    ft_extractor = OnlineFeatureExtractor(name=name, win_size=win_size, n=parameter)
     ft_extractor.connect_myo()
     
     input('Press enter to start: ')
     sys.stdout.write('\rHold position.')
-    controller = Controller(name, n=parameter)
+    #controller = Controller(name, n=parameter, win_size=win_size)
+    
+    
     
     try:
         ft_extractor.initalize()
-        listening = threading.Thread(target=ft_extractor.run_)
-        listening.start()
-        while True:
-            features = ft_extractor.get_features()
-            controller.update_proba(features)
-            time.sleep(0.05)
-    except Exception as e:
+        
+        ft_extractor.run_()
+        #listening = threading.Thread(target=ft_extractor.run_)
+        #listening.start()
+        #listening.join()
+        #while True:
+        #    pass
+            #ft_extractor.transition
+    except KeyboardInterrupt as e:
             print('Keyboard interrupt.')
+
     finally:
-        ft_extractor.terminate=True
-        while listening.isAlive():
-            pass
+        #ft_extractor.terminate=True
+        
+        print('Frequency:', ft_extractor.count/(time.time()-ft_extractor.start_time), 'Hz.')
         print('Disconnecting.')
+        
         ft_extractor.disconnect()
         
