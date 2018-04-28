@@ -11,6 +11,7 @@ import struct
 import sys
 import threading
 import time
+#from matplotlib import pyplot as plt
 import serial
 from serial.tools.list_ports import comports
 
@@ -25,8 +26,9 @@ class Myo(object):
         self.emg_char = [0x2b, 0x2e, 0x31, 0x34]
         self.emg_desc = [0x2c, 0x2f, 0x32, 0x35]
         self.packet_starts = [0x00, 0x80, 0x08, 0x88]#[b'\x00', b'\x80', b'\x08', b'\x88']       
-        self.terminate = False
         self.emg_arrays = []
+        self.terminate=False
+        self.conn = None
         if not tty: tty=self.find_myo()
         self.ser = serial.Serial(port=tty, baudrate=9600, dsrdtr=1)
         
@@ -45,8 +47,9 @@ class Myo(object):
             #self.write_attr(emg_char, b'\x01\00')
         
         #self.write_attr(0x28, b'\x01\00')
+        
         self.write_attr(0x19, b'\x09\x01\x01')
-        self.write_attr(0x19, b'\x01\x03\x02\x00\x00')
+        self.write_attr(0x19, b'\x01\x03\x03\x00\x00')
         
         
         for attr in self.emg_desc:
@@ -60,7 +63,14 @@ class Myo(object):
     def recv_packet(self, payme=False, timeout=None):  
         buff = []
         packet_len = -1
+        t = time.time()
         while len(buff)!=packet_len:
+            
+            if timeout and time.time()>=t+timeout:
+                print('Timeout')
+                return None
+                
+            
             #print(packet_len, print(len(buff)))
             c = self.ser.read()
             c = ord(c)
@@ -77,17 +87,20 @@ class Myo(object):
         if buff[0]==0x80:
             try:
                 c, attr, typ = unpack('BHB', payload[:4])       
-                if attr in self.emg_char: #==0x27: 
+                if (attr in self.emg_char) and not self.terminate: #==0x27: 
                     if self.emg_count==0: 
                         self.start_time=time.time()
                     self.emg_count+=1   
                     vals = tuple(int(b)-(b//128)*256 for b in buff[9:]) #unpack('8HB', payload[5:]
-                    self.on_emg_data(vals[:8])
-                    self.on_emg_data(vals[8:])
+                    self.on_emg_data(vals)
+                    #self.on_emg_data(vals[8:])
             except Exception:
                 pass
-            
-        if payme:    
+        
+        if time.time()>=(t+time.time()):
+            print('Timeout.')
+            return None
+        elif payme:    
             return buff[:4]+[payload]
 
 
@@ -96,7 +109,9 @@ class Myo(object):
         
         ## stop everything from before
         self.end_scan()
-        
+        #self.disconnect(0)
+        #self.disconnect(1)
+        #self.disconnect(2)
        
         ## start scanning
         print('scanning...')
@@ -143,9 +158,10 @@ class Myo(object):
 
 
     def run_(self, timeout=None):
-        while not self.terminate:
+        while not self.terminate:            
             self.recv_packet(timeout)
-    
+        self.terminate=True
+        
     def connect(self, addr):
         return self.send_command(6, 3, pack('6sBHHHH', multichr(addr), 0, 6, 6, 64, 0))
 
@@ -158,11 +174,12 @@ class Myo(object):
     def end_scan(self):
         return self.send_command(6, 4)
 
-    def disconnect(self, h=None):
-        self.write_attr(0x19, b'\x09\x01\x00')
+    def disconnect(self, h=None):        
         if not h is None:
+            print('h:', h)
             return self.send_command(3, 0, pack('B', h))
         elif not self.conn is None:
+            self.write_attr(0x19, b'\x09\x01\x00')
             return self.send_command(3, 0, pack('B', self.conn))
     
     def wait_event(self, cls, cmd):
@@ -175,8 +192,9 @@ class Myo(object):
         return packet
     
     def on_emg_data(self, emg):
-        print('old')
-        self.emg_arrays.append(emg)
+        print(emg[:8])
+        print(emg[8:])
+        #self.emg_arrays.append(emg)
   
     
 def plotting(data, sensor):
@@ -192,6 +210,7 @@ if __name__=='__main__':
     myo.connect_myo()
     
     myo.initalize()
+   
     try:
         myo.run_() 
     except KeyboardInterrupt:
@@ -199,5 +218,5 @@ if __name__=='__main__':
     finally:
         print('Disconnecting.')
         myo.disconnect()
-        print('EMG streaming rate =', myo.emg_count/(time.time()-myo.start_time), 'Hz.')
-    
+        print('EMG streaming rate =', 2*myo.emg_count/(time.time()-myo.start_time), 'Hz.')
+   
