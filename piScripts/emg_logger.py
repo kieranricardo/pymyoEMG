@@ -10,7 +10,7 @@ from myo_bt import Myo
 import collections
 import pandas as pd
 import time
-from multiprocessing import Process
+#from multiprocessing import Process
 import threading
 
 class EMGListener(Myo):
@@ -32,7 +32,8 @@ class EMGListener(Myo):
     def on_emg_data(self, emg_data):   
         
         if self.recording: 
-            self.emg_data_queue.append((self.start_time, emg_data))
+            self.emg_data_queue.append((self.start_time, emg_data[:8]))
+            self.emg_data_queue.append((self.start_time, emg_data[8:]))
 
     def get_emg_data(self):
         return list(self.emg_data_queue)
@@ -64,7 +65,7 @@ class EMGListener(Myo):
     def save_data(self):
         if self.df is None: return 0
         try:
-            df = pd.read_hdf(self.name+'_emg_data.h5', 'data')
+            df = pd.read_hdf('../Data/'+self.name+'_emg_data.h5', 'data')
             df = pd.concat((df, self.df))
         except FileNotFoundError:
             df = self.df
