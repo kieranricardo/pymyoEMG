@@ -8,7 +8,6 @@ Created on Tue Mar 27 20:15:54 2018
 
 
 from online_feature_extractor import OnlineFeatureExtractor
-from controller import Controller
 import sys
 import threading
 import time
